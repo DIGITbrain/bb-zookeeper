@@ -1,0 +1,37 @@
+# build image: docker build -t zookeeper:3.6.3 .
+# docker run -d --rm --name zookeeper -p 12181:2181/tcp zookeeper:3.6.3
+
+FROM ubuntu:20.04
+
+# package pre-requisites
+RUN apt-get update && apt-get install -y openjdk-11-jdk-headless wget
+
+# create user 'kafka'
+RUN useradd -ms /bin/bash kafka
+RUN passwd kafka -l
+
+# copy start-kafka.sh
+COPY ./start-zookeeper.sh /home/kafka/
+RUN chown kafka:kafka /home/kafka/start-zookeeper.sh
+RUN chmod +x /home/kafka/start-zookeeper.sh
+
+USER kafka
+WORKDIR /home/kafka
+
+# download kafka binaries
+RUN wget https://dlcdn.apache.org/kafka/3.0.0/kafka_2.13-3.0.0.tgz && mkdir kafka && tar zxvf kafka_2.13-3.0.0.tgz -C kafka --strip 1 && rm kafka_2.13-3.0.0.tgz
+
+# set environment variables (java home and heap size)
+ENV JAVA_HOME=/usr/lib/jvm/java-1.11.0-openjdk-amd64
+ENV KAFKA_HEAP_OPTS="-Xms1g -Xmx2g"
+
+# create symlinks and data dir
+RUN ln -s kafka/config; ln -s kafka/logs; ln -s kafka/bin
+RUN mkdir data
+
+# alter zookeeper.properties
+RUN sed -i 's/\/tmp\/zookeeper/\/home\/kafka\/data/g' /home/kafka/config/zookeeper.properties
+
+# run zookeeper and kafka at startup (ENTRYPOINT?)
+CMD /home/kafka/start-zookeeper.sh
+
