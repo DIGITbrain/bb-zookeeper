@@ -36,7 +36,34 @@ where container port 2181 is opened on host port 2181.
 
 Security
 ========
-The image uses no encryption/authentication. It is aimed to use internally in private networks.
+The image uses no encryption/authentication. It is aimed to use internally (e.g. by Apache Kafka) in private networks.
+
+.. warning::
+  Do not expose Zookeeper's container port to the public internet.
+
+
+In Kubernetes, you should only expose port **2181** internally, e.g.: 
+
+.. code-block:: yaml
+
+    zookeeper:
+        ...
+        ports:
+        - port: 2181
+          target: 2181
+        - containerPort: 2181 
+
+and connect Kafka to Zookeeper also internally, passing Zookeeper's host and port paramaters, e.g.
+
+.. code-block:: yaml
+
+    kafka:
+        ...
+        env:
+        - name: ZOOKEEPER_HOST
+          value: zookeeper.default.svc.cluster.local
+        - name: ZOOKEEPER_PORT
+          value: 2181
 
 Configuration
 -------------
